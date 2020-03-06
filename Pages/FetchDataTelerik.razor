@@ -1,0 +1,134 @@
+﻿@layout  AdminLayout 
+
+@page "/telerikfetchdata"
+Editing is cancelled for the first two records.
+<br />
+<strong>There is a deliberate delay</strong> in the data source operations in this example to mimic real life delays and to showcase the async nature of the calls.
+
+<TelerikGrid Data=@MyData EditMode="@GridEditMode.Inline" Pageable="true" Height="400px"
+             OnUpdate="@UpdateHandler" OnEdit="@EditHandler" OnDelete="@DeleteHandler" OnCreate="@CreateHandler" OnCancel="@CancelHandler">
+    <GridToolBar>
+        <GridCommandButton Command="Add" Icon="add">Add Employee</GridCommandButton>
+    </GridToolBar>
+    <GridColumns>
+        <GridColumn Field=@nameof(SampleData.ID) Title="ID" Editable="false" />
+        <GridColumn Field=@nameof(SampleData.Name) Title="Name" />
+        <GridCommandColumn>
+            <GridCommandButton Command="Save" Icon="save" ShowInEdit="true">Update</GridCommandButton>
+            <GridCommandButton Command="Edit" Icon="edit">Edit</GridCommandButton>
+            <GridCommandButton Command="Delete" Icon="delete">Delete</GridCommandButton>
+            <GridCommandButton Command="Cancel" Icon="cancel" ShowInEdit="true">Cancel</GridCommandButton>
+        </GridCommandColumn>
+    </GridColumns>
+</TelerikGrid>
+
+@logger
+
+@code {
+    async Task EditHandler(GridCommandEventArgs args)
+    {
+        AppendToLog("Edit", args);
+
+        SampleData item = (SampleData)args.Item;
+
+        //prevent opening for edit based on condition
+        if (item.ID < 3)
+        {
+            args.IsCancelled = true;//the general approach for cancelling an event
+        }
+    }
+
+    async Task UpdateHandler(GridCommandEventArgs args)
+    {
+        AppendToLog("Update", args);
+
+        SampleData item = (SampleData)args.Item;
+
+        // perform actual data source operations here through your service
+
+        //await Task.Delay(2000); // simulate actual long running async operation
+
+        // if the grid Data is not tied to the service, you may need to update the local view data too
+        var index = MyData.FindIndex(i => i.ID == item.ID);
+        if (index != -1)
+        {
+            MyData[index] = item;
+        }
+    }
+
+    async Task DeleteHandler(GridCommandEventArgs args)
+    {
+        AppendToLog("Delete", args);
+
+        SampleData item = (SampleData)args.Item;
+
+        // perform actual data source operation here through your service
+
+        //await Task.Delay(2000); // simulate actual long running async operation
+
+        // if the grid Data is not tied to the service, you may need to update the local view data too
+        MyData.Remove(item);
+    }
+
+    async Task CreateHandler(GridCommandEventArgs args)
+    {
+        AppendToLog("Create", args);
+
+        SampleData item = (SampleData)args.Item;
+
+        // perform actual data source operation here through your service
+
+        //await Task.Delay(2000); // simulate actual long running async operation
+
+        // if the grid Data is not tied to the service, you may need to update the local view data too
+        item.ID = MyData.Count + 1;
+        MyData.Insert(0, item);
+    }
+
+    async Task CancelHandler(GridCommandEventArgs args)
+    {
+        AppendToLog("Cancel", args);
+
+        SampleData item = (SampleData)args.Item;
+
+        // if necessary, perform actual data source operation here through your service
+
+        //await Task.Delay(1000); //simulate actual long running async operation
+    }
+
+    MarkupString logger;
+    void AppendToLog(string commandName, GridCommandEventArgs args)
+    {
+        string currAction = string.Format(
+            "<br />Command: <strong>{0}</strong>; is cancelled: <strong>{1}</strong>; is the item new: <strong>{2}</strong>",
+                commandName,
+                args.IsCancelled,
+                args.IsNew
+            );
+        logger = new MarkupString(logger + currAction);
+    }
+
+
+    // in a real case, keep the models in dedicated locations, this is just an easy to copy and see example
+    public class SampleData
+    {
+        public int ID { get; set; }
+        public string Name { get; set; }
+    }
+
+    List<SampleData> MyData { get; set; }
+
+    protected override void OnInitialized()
+    {
+        MyData = new List<SampleData>();
+
+        for (int i = 0; i < 50; i++)
+        {
+            MyData.Add(new SampleData()
+            {
+                ID = i,
+                Name = "Name " + i.ToString()
+            });
+        }
+    }
+}
